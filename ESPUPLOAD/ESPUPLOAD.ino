@@ -29,24 +29,45 @@
 #define WIFI_PASSWORD "vgyvgy789"
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 5
+#include <NTPtimeESP.h>
 
+ // Choose server pool as required
+NTPtime NTPch("ch.pool.ntp.org");  
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
-// Pass our oneWire reference to Dallas Temperature. 
+// Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
 
 // arrays to hold device address
 DeviceAddress insideThermometer;
+int willConnect;
+int mostRecentTemp;
+strDateTime dateTime;
 
 
 void setup() {
   Serial.begin(9600);
-  
-  // connect to wifi.
+
+
+
+  //DallasTemp
+  Serial.print("Locating devices...");
+  sensors.begin();
+  Serial.print("Found ");
+  Serial.print(sensors.getDeviceCount(), DEC);
+  Serial.println(" devices.");
+
+  // report parasite power requirements
+  if (sensors.isParasitePowerMode()) Serial.println("ON");
+  else Serial.println("OFF");
+  if (!sensors.getAddress(insideThermometer, 0)) {
+    sensors.setResolution(insideThermometer, 9);
+  }
+
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("connecting");
-  while (WiFi.status() != WL_CONNECTED) {
+    while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
@@ -56,49 +77,51 @@ void setup() {
 
   //firebase
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-
-  //DallasTemp
-   Serial.print("Locating devices...");
-  sensors.begin();
-  Serial.print("Found ");
-  Serial.print(sensors.getDeviceCount(), DEC);
-  Serial.println(" devices.");
-
-  // report parasite power requirements
-  Serial.print("Parasite power is: "); 
-  if (sensors.isParasitePowerMode()) Serial.println("ON");
-  else Serial.println("OFF");
-  if (!sensors.getAddress(insideThermometer, 0)) Serial.println("Unable to find address for Device 0"); 
-  Serial.print("Device 0 Address: ");
-  Serial.println();
-  sensors.setResolution(insideThermometer, 9);
- 
-  Serial.print("Device 0 Resolution: ");
-  Serial.print(sensors.getResolution(insideThermometer), DEC); 
-  Serial.println();
 }
 
 int printTemperature(DeviceAddress deviceAddress)
 {
   float tempC = sensors.getTempC(deviceAddress);
   Serial.print("Temp C: ");
-  Serial.print(tempC);
+  Serial.println(tempC);
   int TempC = sensors.getTempC(deviceAddress);
   return TempC;
 }
 
-
-void loop() {
+float getTemp() {
   //SensorData
   sensors.requestTemperatures();
   Serial.println("DONE");
   float tempToSend =   printTemperature(insideThermometer);
+  return tempToSend;
+}
+
+
+void loop() {
+   dateTime = NTPch.getNTPtime(1.0, 1);
+
+  // check dateTime.valid before using the returned time
+  // Use "setSendInterval" or "setRecvTimeout" if required
+  if(dateTime.valid){
+    NTPch.printDateTime(dateTime);
+
+    byte actualHour = dateTime.hour;
+    byte actualMinute = dateTime.minute;
+    byte actualsecond = dateTime.second;
+    int actualyear = dateTime.year;
+    byte actualMonth = dateTime.month;
+    byte actualday = dateTime.day;
+    byte actualdayofWeek = dateTime.dayofWeek;
+  }
+  int testa = dateTime.hour;
+  Serial.println(testa);
   //Firebase upplload
-  Firebase.setInt("logs", tempToSend);
-  if(Firebase.failed())
+  Firebase.setInt("logs", getTemp());
+  Serial.println("Uploaded");
+  if (Firebase.failed())
   {
     Serial.println(Firebase.error());
   }
-  Serial.println("Uploaded");
-  delay(3000);
+  mostRecentTemp = getTemp();
+  ESP.deepSleep(10e6);
 }
