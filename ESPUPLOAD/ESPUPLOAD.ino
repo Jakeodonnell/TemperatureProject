@@ -21,6 +21,7 @@
 #include <FirebaseArduino.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <NTPtimeESP.h>
 
 // Set these to run example.
 #define FIREBASE_HOST "test-de47e.firebaseio.com"
@@ -29,10 +30,9 @@
 #define WIFI_PASSWORD "vgyvgy789"
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 5
-#include <NTPtimeESP.h>
+
 
  // Choose server pool as required
-NTPtime NTPch("ch.pool.ntp.org");  
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
@@ -43,6 +43,8 @@ DallasTemperature sensors(&oneWire);
 DeviceAddress insideThermometer;
 int willConnect;
 int mostRecentTemp;
+
+NTPtime NTPch("ch.pool.ntp.org");  
 strDateTime dateTime;
 
 
@@ -113,10 +115,10 @@ void loop() {
     byte actualday = dateTime.day;
     byte actualdayofWeek = dateTime.dayofWeek;
   }
-  int testa = dateTime.hour;
-  Serial.println(testa);
+
   //Firebase upplload
   Firebase.setInt("logs", getTemp());
+  Firebase.setInt("a", dateTime.hour);
   Serial.println("Uploaded");
   if (Firebase.failed())
   {
