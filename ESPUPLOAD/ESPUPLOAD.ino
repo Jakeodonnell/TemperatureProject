@@ -22,6 +22,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <NTPtimeESP.h>
+#include <EEPROM.h>
 
 // Set these to run example.
 #define FIREBASE_HOST "test-de47e.firebaseio.com"
@@ -32,7 +33,7 @@
 #define ONE_WIRE_BUS 5
 
 
- // Choose server pool as required
+// Choose server pool as required
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
@@ -41,7 +42,6 @@ DallasTemperature sensors(&oneWire);
 
 // arrays to hold device address
 DeviceAddress insideThermometer;
-int willConnect;
 int mostRecentTemp;
 
 NTPtime NTPch("ch.pool.ntp.org");  
@@ -50,9 +50,6 @@ strDateTime dateTime;
 
 void setup() {
   Serial.begin(9600);
-
-
-
   //DallasTemp
   Serial.print("Locating devices...");
   sensors.begin();
@@ -65,6 +62,18 @@ void setup() {
   else Serial.println("OFF");
   if (!sensors.getAddress(insideThermometer, 0)) {
     sensors.setResolution(insideThermometer, 9);
+  }
+    uint addr = 0;
+  EEPROM.begin(512);
+   float check;
+  EEPROM.get(addr,check); 
+  Serial.print("CHECK FOR WAKE UP" + String(check) + "\n");
+  if(check == getTemp()){ 
+     ESP.deepSleep(10e6);
+  } else {
+    float val = getTemp();
+    EEPROM.put(addr,val);
+    EEPROM.commit();  
   }
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -116,6 +125,7 @@ void loop() {
     byte actualdayofWeek = dateTime.dayofWeek;
   }
 
+  
   //Firebase upplload
   Firebase.setInt("logs", getTemp());
   Firebase.setInt("a", dateTime.hour);
