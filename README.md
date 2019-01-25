@@ -9,4 +9,6 @@ Temperature sensor: DS18B20
 
 Resistor: 1, 10kOhm
 
+Power: 3xAA snap Batteryholder
+
 Some wires, perfboard and solder! 
