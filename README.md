@@ -1,2 +1,8 @@
 # TemperatureProject
-IOS application liked to firebase database where values from ESP8266 is uploaded via wi-fi communication
+Project where temperature can be displayed from anywhere with a internet connection to your IOS device. 
+
+Parts Used:
+Dev board: ESP8266
+Temperature sensor: DS18B20
+Resistor: 1, 10kOhm
+Some wires, perfboard and solder! 
